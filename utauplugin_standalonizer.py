@@ -24,6 +24,7 @@ USTファイルを対象に、UTAUプラグインを実行させるツール。
 # from time import sleep
 import subprocess
 from copy import deepcopy
+from os import makedirs
 from os.path import basename, splitext
 
 import utaupy as up
@@ -32,7 +33,8 @@ from tqdm import tqdm
 # from pprint import pprint
 
 
-PATH_TEMPORARY_PLUGIN_TXT = './temp_utauplugin_wrapper.txt'
+PATH_TEMPORARY_PLUGIN_TXT = './utauplugin_standalonizer_temp.txt'
+PATH_OUTPUT_DIR = 'out'
 
 
 def generate_plugintxt_from_ustobj(ust, path_txt_out):
@@ -94,7 +96,7 @@ def main():
     # 処理したいUSTファイルを指定
     path_ust_in = input('path_ust_in: ').strip('"')
     # USTファイルの出力先
-    path_ust_out = splitext(basename(path_ust_in))[0] + '_result.ust'
+    path_ust_out = PATH_OUTPUT_DIR + '/' + splitext(basename(path_ust_in))[0] + '_result.ust'
     # USTファイルをutaupy.ust.Ustオブジェクト化
     ust = up.ust.load(path_ust_in)
     # UTAUプラグイン用の一時ファイルを生成
@@ -103,6 +105,8 @@ def main():
     run_external_utauplugin(path_utauplugin_exe, PATH_TEMPORARY_PLUGIN_TXT)
     # UTAUプラグイン用の一時ファイルを読み取ってUstオブジェクトに差分を反映
     update_ustobj_with_plugintxt(ust, PATH_TEMPORARY_PLUGIN_TXT)
+    # 出力用のフォルダを作成
+    makedirs(PATH_OUTPUT_DIR, exist_ok=True)
     # UstオブジェクトをUSTファイル出力
     ust.write(path_ust_out)
 
