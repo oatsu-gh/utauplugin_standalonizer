@@ -47,19 +47,19 @@ def run_external_utauplugin(path_utauplugin_exe, path_ust_in):
     # [#TRACKEND] を追加してから、UTAUプラグインが出力したファイルを取得する
     with open(path_plugintxt, 'a') as f:
         f.write('[#TRACKEND]\n')
-    configured_ust = up.ust.load(path_plugintxt)
+    processed_ust = up.ust.load(path_plugintxt)
 
     # 変更点を元のUSTに反映
-    original_notes = original_ust.notes
-    for idx, note in enumerate(tqdm(configured_ust.notes)):
+    notes = original_ust.notes
+    for idx, note in enumerate(tqdm(processed_ust.notes)):
         if note.tag == '[#INSERT]':
-            original_notes.insert(idx, note)
+            notes.insert(idx, note)
         else:
             # データ差分を更新
-            original_notes[idx].update(note)
+            notes[idx].update(note)
     # ustファイルを出力
     path_ust_out=splitext(basename(path_ust_in))[0] + '_updated.ust'
-    original_ust.notes = original_notes
+    original_ust.notes = notes
     original_ust.write(path_ust_out)
 
 
