@@ -2,6 +2,9 @@
 # coding: utf-8
 # Copyright (c) 2020 oatsu
 """
+USTファイルを対象に、UTAUプラグインを実行させるツール。
+大量に処理したい、複数のプラグインを連続で実行したいとかに使えそう。
+
 # 入力
 - ustファイルを読み取ってUstオブジェクトにする。
 - UstオブジェクトをUtauPluginオブジェクトに変換する。
@@ -86,9 +89,13 @@ def main():
     """
     処理対象ファイルのPATHを指定して処理を実行
     """
+    # UTAUプラグインを指定
     path_utauplugin_exe = input('path_utauplugin_exe: ').strip('"')
+    # 処理したいUSTファイルを指定
     path_ust_in = input('path_ust_in: ').strip('"')
+    # USTファイルの出力先
     path_ust_out = splitext(basename(path_ust_in))[0] + '_result.ust'
+    # USTファイルをutaupy.ust.Ustオブジェクト化
     ust = up.ust.load(path_ust_in)
     # UTAUプラグイン用の一時ファイルを生成
     generate_plugintxt_from_ustobj(ust, PATH_TEMPORARY_PLUGIN_TXT)
@@ -98,8 +105,8 @@ def main():
     update_ustobj_with_plugintxt(ust, PATH_TEMPORARY_PLUGIN_TXT)
     # UstオブジェクトをUSTファイル出力
     ust.write(path_ust_out)
-    input('できた')
 
 
 if __name__ == '__main__':
     main()
+    input('できた')
