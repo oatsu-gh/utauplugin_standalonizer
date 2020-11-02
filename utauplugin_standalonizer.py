@@ -22,51 +22,82 @@
 import subprocess
 from copy import deepcopy
 from os.path import basename, splitext
-from pprint import pprint
 
 import utaupy as up
 from tqdm import tqdm
 
-PATH_TEMPORARY_PLUGINTXT = './temp_utauplugin_wrapper.txt'
+# from pprint import pprint
 
 
-def run_external_utauplugin(path_utauplugin_exe, path_ust_in):
+PATH_TEMPORARY_PLUGIN_TXT = './temp_utauplugin_wrapper.txt'
+
+
+def generate_plugintxt_from_ustobj(ust, path_txt_out):
+    """
+    ust         : utaupy.ust.Ust オブジェクト
+    path_txt_out: UTAUプラグイン用テキストファイルのPATH
+
+    USTファイルを読み取り、
+    UTAUプラグイン用のテキストファイルとして保存する。
+    """
+    # 元のUstオブジェクトを壊さないために複製
+    ust_deepcopied = deepcopy(ust)
+    # [#TRACKEND] に対応するノートを削除
+    if ust_deepcopied[-1].tag == '[#TRACKEND]':
+        del ust_deepcopied[-1]
+    else:
+        raise ValueError('入力USTの最終エントリが [#TRACKEND] じゃないです。')
+    # UTAUプラグイン用のテキストファイルを出力
+    ust_deepcopied.write(path_txt_out)
+
+
+def run_external_utauplugin(path_utauplugin_exe, path_plugintxt):
     """
     入出力パスを指定し、全体の処理を実行する。
+    path_utauplugin_exe: UTAUプラグインのパス
+    path_plugintxt: UTAUプラグイン用一時ファイルのPATH
     """
-    # 処理したいUSTファイルを読み取る
-    original_ust = up.ust.load(path_ust_in)
-    # [#TRACKEND] を取り除く
-    original_ust_for_plugin = deepcopy(original_ust)
-    # UTAUプラグイン用のテキストファイルを出力
-    path_plugintxt = PATH_TEMPORARY_PLUGINTXT
-    original_ust_for_plugin.write(path_plugintxt.replace('.txt', '_in.txt'))
-    original_ust_for_plugin.write(path_plugintxt)
     # UTAUプラグインを起動して処理させる
     subprocess.run((path_utauplugin_exe, path_plugintxt), check=True)
-    # [#TRACKEND] を追加してから、UTAUプラグインが出力したファイルを取得する
+
+
+def update_ustobj_with_plugintxt(ust, path_plugintxt):
+    """
+    もとのUstと、プラグインが出力したUstっぽいファイルを比較して、
+    もとのUstオブジェクトのパラメータを上書きする。
+    """
+    # [#TRACKEND] を追加
     with open(path_plugintxt, 'a') as f:
         f.write('[#TRACKEND]\n')
+    # UTAUプラグインが出力したファイルをUstオブジェクトとして読み取る
     processed_ust = up.ust.load(path_plugintxt)
 
-    # 変更点を元のUSTに反映
-    notes = original_ust.notes
+    # ノートのパラメータ差分を更新
+    notes = ust.notes
     for idx, note in enumerate(tqdm(processed_ust.notes)):
         if note.tag == '[#INSERT]':
             notes.insert(idx, note)
         else:
-            # データ差分を更新
             notes[idx].update(note)
-    # ustファイルを出力
-    path_ust_out=splitext(basename(path_ust_in))[0] + '_updated.ust'
-    original_ust.notes = notes
-    original_ust.write(path_ust_out)
+    ust.notes = notes
 
 
 def main():
-    path_utauplugin_exe=input('path_utauplugin_exe: ').strip('"')
-    path_ust_in=input('path_ust_in: ').strip('"')
-    run_external_utauplugin(path_utauplugin_exe, path_ust_in)
+    """
+    処理対象ファイルのPATHを指定して処理を実行
+    """
+    path_utauplugin_exe = input('path_utauplugin_exe: ').strip('"')
+    path_ust_in = input('path_ust_in: ').strip('"')
+    path_ust_out = splitext(basename(path_ust_in))[0] + '_result.ust'
+    ust = up.ust.load(path_ust_in)
+    # UTAUプラグイン用の一時ファイルを生成
+    generate_plugintxt_from_ustobj(ust, PATH_TEMPORARY_PLUGIN_TXT)
+    # UTAUプラグインを呼び出して処理を実行
+    run_external_utauplugin(path_utauplugin_exe, PATH_TEMPORARY_PLUGIN_TXT)
+    # UTAUプラグイン用の一時ファイルを読み取ってUstオブジェクトに差分を反映
+    update_ustobj_with_plugintxt(ust, PATH_TEMPORARY_PLUGIN_TXT)
+    # UstオブジェクトをUSTファイル出力
+    ust.write(path_ust_out)
     input('できた')
 
 
