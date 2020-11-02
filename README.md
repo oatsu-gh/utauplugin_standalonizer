@@ -1,0 +1,2 @@
+# utauplugin_standalonizer
+ UTAUプラグインをUST処理ツールとして起動するためのwrapper
